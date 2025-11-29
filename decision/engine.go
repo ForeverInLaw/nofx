@@ -347,75 +347,75 @@ func buildSystemPrompt(accountEquity float64, btcEthLeverage, altcoinLeverage in
 	// 2. 交易模式变体
 	switch strings.ToLower(strings.TrimSpace(variant)) {
 	case "aggressive":
-		sb.WriteString("## 模式：Aggressive（进攻型）\n- 优先捕捉趋势突破，可在信心度≥70时分批建仓\n- 允许更高仓位，但须严格设置止损并说明盈亏比\n\n")
+		sb.WriteString("## Mode: Aggressive\n- Prioritize trend breakouts; can scale in when confidence ≥ 70.\n- Higher position sizes allowed, but strict stop-loss and risk-reward ratio required.\n\n")
 	case "conservative":
-		sb.WriteString("## 模式：Conservative（稳健型）\n- 仅在多重信号共振时开仓\n- 优先保留现金，连续亏损必须暂停多个周期\n\n")
+		sb.WriteString("## Mode: Conservative\n- Only trade when multiple signals resonate.\n- Prioritize cash preservation; must pause for multiple cycles after consecutive losses.\n\n")
 	case "scalping":
-		sb.WriteString("## 模式：Scalping（剥头皮）\n- 聚焦短周期动量，目标收益较小但要求迅速\n- 若价格两根bar内未按预期运行，立即减仓或止损\n\n")
+		sb.WriteString("## Mode: Scalping\n- Focus on short-term momentum; targets are smaller but speed is key.\n- If price doesn't move as expected within 2 bars, reduce position or stop loss immediately.\n\n")
 	}
 
 	// 3. 硬约束（风险控制）
-	sb.WriteString("# 硬约束（风险控制）\n\n")
-	sb.WriteString("1. 风险回报比: 必须 ≥ 1:3（冒1%风险，赚3%+收益）\n")
-	sb.WriteString("2. 最多持仓: 3个币种（质量>数量）\n")
-	sb.WriteString(fmt.Sprintf("3. 单币仓位: 山寨%.0f-%.0f U | BTC/ETH %.0f-%.0f U\n",
+	sb.WriteString("# Hard Constraints (Risk Control)\n\n")
+	sb.WriteString("1. Risk-Reward Ratio: Must be ≥ 1:3 (Risk 1% to make 3%+)\n")
+	sb.WriteString("2. Max Positions: 3 coins (Quality > Quantity)\n")
+	sb.WriteString(fmt.Sprintf("3. Single Position Size: Altcoins %.0f-%.0f U | BTC/ETH %.0f-%.0f U\n",
 		accountEquity*0.8, accountEquity*1.5, accountEquity*5, accountEquity*10))
-	sb.WriteString(fmt.Sprintf("4. 杠杆限制: **山寨币最大%dx杠杆** | **BTC/ETH最大%dx杠杆**\n", altcoinLeverage, btcEthLeverage))
-	sb.WriteString("5. 保证金使用率 ≤ 90%\n")
-	sb.WriteString("6. 开仓金额: 建议 ≥12 USDT（交易所最小名义价值10 USDT + 安全边际）\n\n")
+	sb.WriteString(fmt.Sprintf("4. Leverage Limit: **Altcoins Max %dx** | **BTC/ETH Max %dx**\n", altcoinLeverage, btcEthLeverage))
+	sb.WriteString("5. Margin Usage ≤ 90%\n")
+	sb.WriteString("6. Minimum Order Value: Recommend ≥12 USDT (Exchange min 10 USDT + buffer)\n\n")
 
 	// 4. 交易频率与信号质量
-	sb.WriteString("# ⏱️ 交易频率认知\n\n")
-	sb.WriteString("- 优秀交易员：每天2-4笔 ≈ 每小时0.1-0.2笔\n")
-	sb.WriteString("- 每小时>2笔 = 过度交易\n")
-	sb.WriteString("- 单笔持仓时间≥30-60分钟\n")
-	sb.WriteString("如果你发现自己每个周期都在交易 → 标准过低；若持仓<30分钟就平仓 → 过于急躁。\n\n")
+	sb.WriteString("# ⏱️ Trading Frequency Awareness\n\n")
+	sb.WriteString("- Excellent Trader: 2-4 trades/day ≈ 0.1-0.2 trades/hour\n")
+	sb.WriteString("- Over-trading: >2 trades/hour = Serious Issue\n")
+	sb.WriteString("- Holding Time: Target ≥30-60 minutes per trade\n")
+	sb.WriteString("Self-Correction: If you trade every cycle → Standards are too low. If you close in <30 mins → Too impatient.\n\n")
 
-	sb.WriteString("# 🎯 开仓标准（严格）\n\n")
-	sb.WriteString("只在多重信号共振时开仓。你拥有：\n")
-	sb.WriteString("- 3分钟价格序列 + 4小时K线序列\n")
-	sb.WriteString("- EMA20 / MACD / RSI7 / RSI14 等指标序列\n")
-	sb.WriteString("- 成交量、持仓量(OI)、资金费率等资金面序列\n")
-	sb.WriteString("- AI500 / OI_Top 筛选标签（若有）\n\n")
-	sb.WriteString("自由运用任何有效的分析方法，但**信心度 ≥75** 才能开仓；避免单一指标、信号矛盾、横盘震荡、刚平仓即重启等低质量行为。\n\n")
+	sb.WriteString("# 🎯 Opening Criteria (Strict)\n\n")
+	sb.WriteString("Open positions ONLY on strong signal resonance. You have:\n")
+	sb.WriteString("- 3-min Price Series + 4-hour Candlestick Series\n")
+	sb.WriteString("- EMA20 / MACD / RSI7 / RSI14 Series\n")
+	sb.WriteString("- Volume, Open Interest (OI), Funding Rate Series\n")
+	sb.WriteString("- AI500 / OI_Top Tags (if available)\n\n")
+	sb.WriteString("Use any effective analysis method, but **Confidence must be ≥75** to open; Avoid single-indicator reliance, conflicting signals, sideways chop, or revenge trading (<15 mins after close).\n\n")
 
 	// 5. 夏普比率驱动的自适应
-	sb.WriteString("# 🧬 夏普比率自我进化\n\n")
-	sb.WriteString("- Sharpe < -0.5：立即停止交易，至少观望6个周期并深度复盘\n")
-	sb.WriteString("- -0.5 ~ 0：只做信心度>80的交易，并降低频率\n")
-	sb.WriteString("- 0 ~ 0.7：保持当前策略\n")
-	sb.WriteString("- >0.7：允许适度加仓，但仍遵守风控\n\n")
+	sb.WriteString("# 🧬 Sharpe Ratio Self-Evolution\n\n")
+	sb.WriteString("- Sharpe < -0.5: STOP trading immediately. Observe for at least 6 cycles. Deep reflection required.\n")
+	sb.WriteString("- -0.5 ~ 0: Only take trades with Confidence > 80. Reduce frequency.\n")
+	sb.WriteString("- 0 ~ 0.7: Maintain current strategy.\n")
+	sb.WriteString("- > 0.7: Moderate position sizing increase allowed, but keep risk control.\n\n")
 
 	// 6. 决策流程提示
-	sb.WriteString("# 📋 决策流程\n\n")
-	sb.WriteString("1. 回顾夏普比率/盈亏 → 是否需要降频或暂停\n")
-	sb.WriteString("2. 检查持仓 → 是否该止盈/止损/调整\n")
-	sb.WriteString("3. 扫描候选币 + 多时间框 → 是否存在强信号\n")
-	sb.WriteString("4. 先写思维链，再输出结构化JSON\n\n")
+	sb.WriteString("# 📋 Decision Process\n\n")
+	sb.WriteString("1. Review Sharpe/PnL → Need to slow down or pause?\n")
+	sb.WriteString("2. Check Positions → TP/SL or adjustment needed?\n")
+	sb.WriteString("3. Scan Candidates + Multi-Timeframe → Any strong signals?\n")
+	sb.WriteString("4. Write Chain of Thought first, then output Structured JSON.\n\n")
 
 	// 7. 输出格式 - 动态生成
-	sb.WriteString("# 输出格式 (严格遵守)\n\n")
-	sb.WriteString("**必须使用XML标签 <reasoning> 和 <decision> 标签分隔思维链和决策JSON，避免解析错误**\n\n")
-	sb.WriteString("## 格式要求\n\n")
+	sb.WriteString("# Output Format (Strict)\n\n")
+	sb.WriteString("**You MUST use XML tags <reasoning> and <decision> to separate Chain of Thought and JSON Decision.**\n\n")
+	sb.WriteString("## Format Template\n\n")
 	sb.WriteString("<reasoning>\n")
-	sb.WriteString("你的思维链分析...\n")
-	sb.WriteString("- 简洁分析你的思考过程 \n")
+	sb.WriteString("Your Chain of Thought analysis here...\n")
+	sb.WriteString("- Concise analysis of your thinking process\n")
 	sb.WriteString("</reasoning>\n\n")
 	sb.WriteString("<decision>\n")
-	sb.WriteString("第二步: JSON决策数组\n\n")
+	sb.WriteString("Step 2: JSON Decision Array\n\n")
 	sb.WriteString("```json\n[\n")
-	sb.WriteString(fmt.Sprintf("  {\"symbol\": \"BTCUSDT\", \"action\": \"open_short\", \"leverage\": %d, \"position_size_usd\": %.0f, \"stop_loss\": 97000, \"take_profit\": 91000, \"confidence\": 85, \"risk_usd\": 300, \"reasoning\": \"下跌趋势+MACD死叉\"},\n", btcEthLeverage, accountEquity*5))
-	sb.WriteString("  {\"symbol\": \"SOLUSDT\", \"action\": \"update_stop_loss\", \"new_stop_loss\": 155, \"reasoning\": \"移动止损至保本位\"},\n")
-	sb.WriteString("  {\"symbol\": \"ETHUSDT\", \"action\": \"close_long\", \"reasoning\": \"止盈离场\"}\n")
+	sb.WriteString(fmt.Sprintf("  {\"symbol\": \"BTCUSDT\", \"action\": \"open_short\", \"leverage\": %d, \"position_size_usd\": %.0f, \"stop_loss\": 97000, \"take_profit\": 91000, \"confidence\": 85, \"risk_usd\": 300, \"reasoning\": \"Downtrend + MACD dead cross\"},\n", btcEthLeverage, accountEquity*5))
+	sb.WriteString("  {\"symbol\": \"SOLUSDT\", \"action\": \"update_stop_loss\", \"new_stop_loss\": 155, \"reasoning\": \"Move SL to breakeven\"},\n")
+	sb.WriteString("  {\"symbol\": \"ETHUSDT\", \"action\": \"close_long\", \"reasoning\": \"Take profit exit\"}\n")
 	sb.WriteString("]\n```\n")
 	sb.WriteString("</decision>\n\n")
-	sb.WriteString("## 字段说明\n\n")
+	sb.WriteString("## Field Definitions\n\n")
 	sb.WriteString("- `action`: open_long | open_short | close_long | close_short | update_stop_loss | update_take_profit | partial_close | hold | wait\n")
-	sb.WriteString("- `confidence`: 0-100（开仓建议≥75）\n")
-	sb.WriteString("- 开仓时必填: leverage, position_size_usd, stop_loss, take_profit, confidence, risk_usd, reasoning\n")
-	sb.WriteString("- update_stop_loss 时必填: new_stop_loss (注意是 new_stop_loss，不是 stop_loss)\n")
-	sb.WriteString("- update_take_profit 时必填: new_take_profit (注意是 new_take_profit，不是 take_profit)\n")
-	sb.WriteString("- partial_close 时必填: close_percentage (0-100)\n\n")
+	sb.WriteString("- `confidence`: 0-100 (Recommend ≥75 for opening)\n")
+	sb.WriteString("- For Opening: leverage, position_size_usd, stop_loss, take_profit, confidence, risk_usd, reasoning are REQUIRED.\n")
+	sb.WriteString("- For update_stop_loss: new_stop_loss is REQUIRED.\n")
+	sb.WriteString("- For update_take_profit: new_take_profit is REQUIRED.\n")
+	sb.WriteString("- For partial_close: close_percentage (0-100) is REQUIRED.\n\n")
 
 	return sb.String()
 }
@@ -425,7 +425,7 @@ func buildUserPrompt(ctx *Context) string {
 	var sb strings.Builder
 
 	// 系统状态
-	sb.WriteString(fmt.Sprintf("时间: %s | 周期: #%d | 运行: %d分钟\n\n",
+	sb.WriteString(fmt.Sprintf("Time: %s | Cycle: #%d | Runtime: %d min\n\n",
 		ctx.CurrentTime, ctx.CallCount, ctx.RuntimeMinutes))
 
 	// BTC 市场
@@ -436,7 +436,7 @@ func buildUserPrompt(ctx *Context) string {
 	}
 
 	// 账户
-	sb.WriteString(fmt.Sprintf("账户: 净值%.2f | 余额%.2f (%.1f%%) | 盈亏%+.2f%% | 保证金%.1f%% | 持仓%d个\n\n",
+	sb.WriteString(fmt.Sprintf("Account: Equity %.2f | Available %.2f (%.1f%%) | PnL %+.2f%% | Margin %.1f%% | Positions %d\n\n",
 		ctx.Account.TotalEquity,
 		ctx.Account.AvailableBalance,
 		(ctx.Account.AvailableBalance/ctx.Account.TotalEquity)*100,
@@ -446,7 +446,7 @@ func buildUserPrompt(ctx *Context) string {
 
 	// 持仓（完整市场数据）
 	if len(ctx.Positions) > 0 {
-		sb.WriteString("## 当前持仓\n")
+		sb.WriteString("## Current Positions\n")
 		for i, pos := range ctx.Positions {
 			// 计算持仓时长
 			holdingDuration := ""
@@ -454,18 +454,18 @@ func buildUserPrompt(ctx *Context) string {
 				durationMs := time.Now().UnixMilli() - pos.UpdateTime
 				durationMin := durationMs / (1000 * 60) // 转换为分钟
 				if durationMin < 60 {
-					holdingDuration = fmt.Sprintf(" | 持仓时长%d分钟", durationMin)
+					holdingDuration = fmt.Sprintf(" | Held %d min", durationMin)
 				} else {
 					durationHour := durationMin / 60
 					durationMinRemainder := durationMin % 60
-					holdingDuration = fmt.Sprintf(" | 持仓时长%d小时%d分钟", durationHour, durationMinRemainder)
+					holdingDuration = fmt.Sprintf(" | Held %dh %dm", durationHour, durationMinRemainder)
 				}
 			}
 
 			// 计算仓位价值（用于 partial_close 检查）
 			positionValue := math.Abs(pos.Quantity) * pos.MarkPrice
 
-			sb.WriteString(fmt.Sprintf("%d. %s %s | 入场价%.4f 当前价%.4f | 数量%.4f | 仓位价值%.2f USDT | 盈亏%+.2f%% | 盈亏金额%+.2f USDT | 最高收益率%.2f%% | 杠杆%dx | 保证金%.0f | 强平价%.4f%s\n\n",
+			sb.WriteString(fmt.Sprintf("%d. %s %s | Entry %.4f Mark %.4f | Qty %.4f | Val %.2f U | PnL %+.2f%% | PnL Amt %+.2f U | Peak PnL %.2f%% | Lev %dx | Margin %.0f | Liq %.4f%s\n\n",
 				i+1, pos.Symbol, strings.ToUpper(pos.Side),
 				pos.EntryPrice, pos.MarkPrice, pos.Quantity, positionValue, pos.UnrealizedPnLPct, pos.UnrealizedPnL, pos.PeakPnLPct,
 				pos.Leverage, pos.MarginUsed, pos.LiquidationPrice, holdingDuration))
@@ -477,11 +477,11 @@ func buildUserPrompt(ctx *Context) string {
 			}
 		}
 	} else {
-		sb.WriteString("当前持仓: 无\n\n")
+		sb.WriteString("Current Positions: None\n\n")
 	}
 
 	// 候选币种（完整市场数据）
-	sb.WriteString(fmt.Sprintf("## 候选币种 (%d个)\n\n", len(ctx.MarketDataMap)))
+	sb.WriteString(fmt.Sprintf("## Candidates (%d)\n\n", len(ctx.MarketDataMap)))
 	displayedCount := 0
 	for _, coin := range ctx.CandidateCoins {
 		marketData, hasData := ctx.MarketDataMap[coin.Symbol]
@@ -492,9 +492,9 @@ func buildUserPrompt(ctx *Context) string {
 
 		sourceTags := ""
 		if len(coin.Sources) > 1 {
-			sourceTags = " (AI500+OI_Top双重信号)"
+			sourceTags = " (AI500+OI_Top)"
 		} else if len(coin.Sources) == 1 && coin.Sources[0] == "oi_top" {
-			sourceTags = " (OI_Top持仓增长)"
+			sourceTags = " (OI_Top)"
 		}
 
 		// 使用FormatMarketData输出完整市场数据
@@ -513,13 +513,13 @@ func buildUserPrompt(ctx *Context) string {
 		var perfData PerformanceData
 		if jsonData, err := json.Marshal(ctx.Performance); err == nil {
 			if err := json.Unmarshal(jsonData, &perfData); err == nil {
-				sb.WriteString(fmt.Sprintf("## 📊 夏普比率: %.2f\n\n", perfData.SharpeRatio))
+				sb.WriteString(fmt.Sprintf("## 📊 Sharpe Ratio: %.2f\n\n", perfData.SharpeRatio))
 			}
 		}
 	}
 
 	sb.WriteString("---\n\n")
-	sb.WriteString("现在请分析并输出决策（思维链 + JSON）\n")
+	sb.WriteString("Now analyze and output your decision (Chain of Thought + JSON)\n")
 
 	return sb.String()
 }
