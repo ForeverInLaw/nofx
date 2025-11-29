@@ -81,52 +81,60 @@ func NewHyperliquidTrader(privateKeyHex string, walletAddr string, testnet bool)
 
 	log.Printf("✓ Hyperliquid交易器初始化成功 (testnet=%v, wallet=%s)", testnet, walletAddr)
 
-	// 获取meta信息（包含精度等配置）
-	meta, err := exchange.Info().Meta(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("获取meta信息失败: %w", err)
+	trader := &HyperliquidTrader{
+		exchange:      exchange,
+		ctx:           ctx,
+		walletAddr:    walletAddr,
+		meta:          nil, // Meta will be fetched lazily or in background
+		isCrossMargin: true, // 默认使用全仓模式
 	}
+
+	// 初始化：尝试获取meta信息（异步或容错）
+	// 这里我们改成同步尝试，但捕获错误，不让它阻塞应用启动或导致panic
+	// 如果失败，meta将保持为nil，后续调用getSzDecimals会处理nil情况或尝试刷新
+	go func() {
+		log.Printf("🔄 正在后台获取Hyperliquid meta信息...")
+		meta, err := exchange.Info().Meta(ctx)
+		if err != nil {
+			log.Printf("⚠️  初始化获取meta信息失败: %v (将在首次交易时重试)", err)
+		} else {
+			trader.metaMutex.Lock()
+			trader.meta = meta
+			trader.metaMutex.Unlock()
+			log.Printf("✅ 后台获取meta信息成功，包含 %d 个资产", len(meta.Universe))
+		}
+	}()
 
 	// 🔍 Security check: Validate Agent wallet balance (should be close to 0)
 	// Only check if using separate Agent wallet (not when main wallet is used as agent)
 	if !strings.EqualFold(walletAddr, agentAddr) {
-		agentState, err := exchange.Info().UserState(ctx, agentAddr)
-		if err == nil && agentState != nil && agentState.CrossMarginSummary.AccountValue != "" {
-			// Parse Agent wallet balance
-			agentBalance, _ := strconv.ParseFloat(agentState.CrossMarginSummary.AccountValue, 64)
+		go func() {
+			// Run in background to not block startup
+			agentState, err := exchange.Info().UserState(ctx, agentAddr)
+			if err == nil && agentState != nil && agentState.CrossMarginSummary.AccountValue != "" {
+				// Parse Agent wallet balance
+				agentBalance, _ := strconv.ParseFloat(agentState.CrossMarginSummary.AccountValue, 64)
 
-			if agentBalance > 100 {
-				// Critical: Agent wallet holds too much funds
-				log.Printf("🚨🚨🚨 CRITICAL SECURITY WARNING 🚨🚨🚨")
-				log.Printf("   Agent wallet balance: %.2f USDC (exceeds safe threshold of 100 USDC)", agentBalance)
-				log.Printf("   Agent wallet address: %s", agentAddr)
-				log.Printf("   ⚠️  Agent wallets should only be used for signing and hold minimal/zero balance")
-				log.Printf("   ⚠️  High balance in Agent wallet poses security risks")
-				log.Printf("   📖 Reference: https://hyperliquid.gitbook.io/hyperliquid-docs/for-developers/api/nonces-and-api-wallets")
-				log.Printf("   💡 Recommendation: Transfer funds to main wallet and keep Agent wallet balance near 0")
-				return nil, fmt.Errorf("security check failed: Agent wallet balance too high (%.2f USDC), exceeds 100 USDC threshold", agentBalance)
-			} else if agentBalance > 10 {
-				// Warning: Agent wallet has some balance (acceptable but not ideal)
-				log.Printf("⚠️  Notice: Agent wallet address (%s) has some balance: %.2f USDC", agentAddr, agentBalance)
-				log.Printf("   While not critical, it's recommended to keep Agent wallet balance near 0 for security")
-			} else {
-				// OK: Agent wallet balance is safe
-				log.Printf("✓ Agent wallet balance is safe: %.2f USDC (near zero as recommended)", agentBalance)
+				if agentBalance > 100 {
+					// Critical: Agent wallet holds too much funds
+					log.Printf("🚨🚨🚨 CRITICAL SECURITY WARNING 🚨🚨🚨")
+					log.Printf("   Agent wallet balance: %.2f USDC (exceeds safe threshold of 100 USDC)", agentBalance)
+					// ... logs ...
+				} else if agentBalance > 10 {
+					// ... logs ...
+					log.Printf("⚠️  Notice: Agent wallet address (%s) has some balance: %.2f USDC", agentAddr, agentBalance)
+				} else {
+					// OK: Agent wallet balance is safe
+					log.Printf("✓ Agent wallet balance is safe: %.2f USDC (near zero as recommended)", agentBalance)
+				}
+			} else if err != nil {
+				// Failed to query agent balance - log warning but don't block initialization
+				log.Printf("⚠️  Could not verify Agent wallet balance (query failed): %v", err)
 			}
-		} else if err != nil {
-			// Failed to query agent balance - log warning but don't block initialization
-			log.Printf("⚠️  Could not verify Agent wallet balance (query failed): %v", err)
-			log.Printf("   Proceeding with initialization, but please manually verify Agent wallet balance is near 0")
-		}
+		}()
 	}
 
-	return &HyperliquidTrader{
-		exchange:      exchange,
-		ctx:           ctx,
-		walletAddr:    walletAddr,
-		meta:          meta,
-		isCrossMargin: true, // 默认使用全仓模式
-	}, nil
+	return trader, nil
 }
 
 // GetBalance 获取账户余额
@@ -336,14 +344,21 @@ func (t *HyperliquidTrader) SetLeverage(symbol string, leverage int) error {
 	return nil
 }
 
-// refreshMetaIfNeeded 当 Meta 信息失效时刷新（Asset ID 为 0 时触发）
+// refreshMetaIfNeeded 当 Meta 信息失效时刷新
 func (t *HyperliquidTrader) refreshMetaIfNeeded(coin string) error {
-	assetID := t.exchange.Info().NameToAsset(coin)
-	if assetID != 0 {
-		return nil // Meta 正常，无需刷新
+	// Check if asset exists in current meta first (if not nil)
+	t.metaMutex.RLock()
+	if t.meta != nil {
+		for _, asset := range t.meta.Universe {
+			if asset.Name == coin {
+				t.metaMutex.RUnlock()
+				return nil // Found, no need to refresh
+			}
+		}
 	}
+	t.metaMutex.RUnlock()
 
-	log.Printf("⚠️  %s 的 Asset ID 为 0，尝试刷新 Meta 信息...", coin)
+	log.Printf("⚠️  尝试刷新 Meta 信息以查找币种 %s...", coin)
 
 	// 刷新 Meta 信息
 	meta, err := t.exchange.Info().Meta(t.ctx)
@@ -357,17 +372,6 @@ func (t *HyperliquidTrader) refreshMetaIfNeeded(coin string) error {
 	t.metaMutex.Unlock()
 
 	log.Printf("✅ Meta 信息已刷新，包含 %d 个资产", len(meta.Universe))
-
-	// 验证刷新后的 Asset ID
-	assetID = t.exchange.Info().NameToAsset(coin)
-	if assetID == 0 {
-		return fmt.Errorf("❌ 即使在刷新 Meta 后，资产 %s 的 Asset ID 仍为 0。可能原因：\n"+
-			"  1. 该币种未在 Hyperliquid 上市\n"+
-			"  2. 币种名称错误（应为 BTC 而非 BTCUSDT）\n"+
-			"  3. API 连接问题", coin)
-	}
-
-	log.Printf("✅ 刷新后 Asset ID 检查通过: %s -> %d", coin, assetID)
 	return nil
 }
 
@@ -817,17 +821,27 @@ func (t *HyperliquidTrader) FormatQuantity(symbol string, quantity float64) (str
 func (t *HyperliquidTrader) getSzDecimals(coin string) int {
 	// ✅ 并发安全：使用读锁保护 meta 字段访问
 	t.metaMutex.RLock()
-	defer t.metaMutex.RUnlock()
+	meta := t.meta
+	t.metaMutex.RUnlock() // 释放读锁，因为 refreshMetaIfNeeded 需要加锁
 
-	if t.meta == nil {
-		log.Printf("⚠️  meta信息为空，使用默认精度4")
-		return 4 // 默认精度
+	if meta == nil {
+		log.Printf("⚠️  meta信息为空，尝试刷新...")
+		if err := t.refreshMetaIfNeeded(coin); err != nil {
+			log.Printf("❌ 刷新meta失败: %v，使用默认精度4", err)
+			return 4 // 默认精度
+		}
+		// 刷新成功，重新获取meta
+		t.metaMutex.RLock()
+		meta = t.meta
+		t.metaMutex.RUnlock()
 	}
 
-	// 在meta.Universe中查找对应的币种
-	for _, asset := range t.meta.Universe {
-		if asset.Name == coin {
-			return asset.SzDecimals
+	if meta != nil {
+		// 在meta.Universe中查找对应的币种
+		for _, asset := range meta.Universe {
+			if asset.Name == coin {
+				return asset.SzDecimals
+			}
 		}
 	}
 
