@@ -134,7 +134,7 @@ func (d *Database) createTables() error {
 
 		// 交易所配置表
 		`CREATE TABLE IF NOT EXISTS exchanges (
-			id TEXT PRIMARY KEY,
+			id TEXT NOT NULL,
 			user_id TEXT NOT NULL DEFAULT 'default',
 			name TEXT NOT NULL,
 			type TEXT NOT NULL, -- 'cex' or 'dex'
@@ -154,6 +154,7 @@ func (d *Database) createTables() error {
 			lighter_api_key_private_key TEXT DEFAULT '',
 			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
 			updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			PRIMARY KEY (id, user_id),
 			FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 		)`,
 
@@ -188,7 +189,7 @@ func (d *Database) createTables() error {
 			updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
 			FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
 			FOREIGN KEY (ai_model_id) REFERENCES ai_models(id),
-			FOREIGN KEY (exchange_id) REFERENCES exchanges(id)
+			FOREIGN KEY (exchange_id, user_id) REFERENCES exchanges(id, user_id)
 		)`,
 
 		// 用户表
@@ -394,6 +395,12 @@ func (d *Database) createTables() error {
 	err := d.migrateExchangesTable()
 	if err != nil {
 		log.Printf("⚠️ 迁移exchanges表失败: %v", err)
+	}
+
+	// 检查是否需要迁移traders表的外键结构
+	err = d.migrateTradersTable()
+	if err != nil {
+		log.Printf("⚠️ 迁移traders表失败: %v", err)
 	}
 
 	return nil
@@ -617,6 +624,130 @@ func (d *Database) migrateExchangesTable() error {
 	}
 
 	log.Printf("✅ exchanges表迁移完成")
+	return nil
+}
+
+// migrateTradersTable 迁移traders表修复外键
+func (d *Database) migrateTradersTable() error {
+	// 检查是否需要迁移（通过检查外键定义）
+	// 简单起见，我们检查是否存在 traders_new 表，如果不存在且 traders 表存在，则尝试迁移
+	// 或者更稳妥：检查 traders 表的 sql 定义是否包含 (exchange_id, user_id)
+	
+	var sqlStmt string
+	err := d.db.QueryRow(`SELECT sql FROM sqlite_master WHERE type='table' AND name='traders'`).Scan(&sqlStmt)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil // 表不存在，无需迁移
+		}
+		return err
+	}
+
+	// 如果已经包含正确的 FK 定义，则无需迁移
+	if strings.Contains(sqlStmt, "FOREIGN KEY (exchange_id, user_id) REFERENCES exchanges(id, user_id)") {
+		return nil
+	}
+
+	log.Printf("🔄 开始迁移traders表以修复外键...")
+
+	// 开启事务
+	tx, err := d.db.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	// 1. 创建新表
+	_, err = tx.Exec(`
+		CREATE TABLE traders_new (
+			id TEXT PRIMARY KEY,
+			user_id TEXT NOT NULL DEFAULT 'default',
+			name TEXT NOT NULL,
+			ai_model_id TEXT NOT NULL,
+			exchange_id TEXT NOT NULL,
+			initial_balance REAL NOT NULL,
+			scan_interval_minutes INTEGER DEFAULT 3,
+			is_running BOOLEAN DEFAULT 0,
+			btc_eth_leverage INTEGER DEFAULT 5,
+			altcoin_leverage INTEGER DEFAULT 5,
+			trading_symbols TEXT DEFAULT '',
+			use_coin_pool BOOLEAN DEFAULT 0,
+			use_oi_top BOOLEAN DEFAULT 0,
+			custom_prompt TEXT DEFAULT '',
+			override_base_prompt BOOLEAN DEFAULT 0,
+			system_prompt_template TEXT DEFAULT 'default',
+			is_cross_margin BOOLEAN DEFAULT 1,
+			thinking_level TEXT DEFAULT '',
+			use_default_coins BOOLEAN DEFAULT 1,
+			custom_coins TEXT DEFAULT '',
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+			FOREIGN KEY (ai_model_id) REFERENCES ai_models(id),
+			FOREIGN KEY (exchange_id, user_id) REFERENCES exchanges(id, user_id)
+		)
+	`)
+	if err != nil {
+		return fmt.Errorf("创建traders_new失败: %w", err)
+	}
+
+	// 2. 复制数据
+	// 注意：我们需要确保所有字段都覆盖到，除了那些可能在旧表中不存在的（由default处理）
+	// 获取旧表的列名
+	rows, err := tx.Query("PRAGMA table_info(traders)")
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+
+	var columns []string
+	for rows.Next() {
+		var cid int
+		var name, ctype string
+		var notnull, pk int
+		var dfltValue interface{}
+		if err := rows.Scan(&cid, &name, &ctype, &notnull, &dfltValue, &pk); err != nil {
+			return err
+		}
+		columns = append(columns, name)
+	}
+
+	// 构建插入语句
+	colList := strings.Join(columns, ", ")
+	query := fmt.Sprintf("INSERT INTO traders_new (%s) SELECT %s FROM traders", colList, colList)
+	
+	if _, err := tx.Exec(query); err != nil {
+		return fmt.Errorf("复制数据失败: %w", err)
+	}
+
+	// 3. 删除旧表
+	// 在删除前，我们需要暂时禁用外键约束检查，因为 traders 引用了其他表
+	// 但在同一个事务中，DROP TABLE 应该没问题，只要没有其他表引用 traders (目前没有)
+	if _, err := tx.Exec("DROP TABLE traders"); err != nil {
+		return fmt.Errorf("删除旧表失败: %w", err)
+	}
+
+	// 4. 重命名新表
+	if _, err := tx.Exec("ALTER TABLE traders_new RENAME TO traders"); err != nil {
+		return fmt.Errorf("重命名表失败: %w", err)
+	}
+
+	// 5. 重建索引/触发器
+	_, err = tx.Exec(`
+		CREATE TRIGGER IF NOT EXISTS update_traders_updated_at
+			AFTER UPDATE ON traders
+			BEGIN
+				UPDATE traders SET updated_at = CURRENT_TIMESTAMP WHERE id = NEW.id;
+			END
+	`)
+	if err != nil {
+		return fmt.Errorf("重建触发器失败: %w", err)
+	}
+
+	if err := tx.Commit(); err != nil {
+		return err
+	}
+
+	log.Printf("✅ traders表迁移完成")
 	return nil
 }
 
