@@ -14,11 +14,14 @@ ARG NGINX_VERSION=alpine
 FROM node:${NODE_VERSION} AS builder
 WORKDIR /build
 
-COPY web/package*.json ./
-RUN npm ci
+# Install pnpm
+RUN corepack enable && corepack prepare pnpm@latest --activate
+
+COPY web/package.json web/pnpm-lock.yaml ./
+RUN pnpm install --frozen-lockfile
 
 COPY web/ ./
-RUN npm run build
+RUN pnpm run build
 
 # ──────────────────────────────────────────────────────────────
 # Runtime Stage (Nginx)

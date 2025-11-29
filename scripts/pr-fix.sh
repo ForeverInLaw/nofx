@@ -189,27 +189,27 @@ if [ -d "web" ]; then
     echo ""
     log_info "Step 3: Running frontend checks..."
 
-    # Check if npm is installed
-    if ! command -v npm &> /dev/null; then
-        log_warning "npm not found. Skipping frontend checks."
-        log_info "Install Node.js: https://nodejs.org/"
+    # Check if pnpm is installed
+    if ! command -v pnpm &> /dev/null; then
+        log_warning "pnpm not found. Skipping frontend checks."
+        log_info "Install pnpm: npm install -g pnpm"
     else
         cd web
 
         # Install dependencies if needed
         if [ ! -d "node_modules" ]; then
             log_info "Installing dependencies..."
-            npm install
+            pnpm install
         fi
 
         # Run linter
         log_info "Running linter..."
-        if npm run lint; then
+        if pnpm run lint; then
             log_success "Linting passed"
         else
             log_warning "Linting found issues"
             log_info "Attempting to auto-fix..."
-            npm run lint -- --fix || true
+            pnpm run lint -- --fix || true
 
             # Commit fixes if any
             if ! git diff --quiet; then
@@ -220,7 +220,7 @@ if [ -d "web" ]; then
 
         # Type check
         log_info "Running type check..."
-        if npm run type-check; then
+        if pnpm run type-check; then
             log_success "Type checking passed"
         else
             log_warning "Type checking found issues. Please fix them."
@@ -228,7 +228,7 @@ if [ -d "web" ]; then
 
         # Build
         log_info "Testing build..."
-        if npm run build; then
+        if pnpm run build; then
             log_success "Build successful"
         else
             log_error "Build failed. Please fix build errors."

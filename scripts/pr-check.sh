@@ -224,10 +224,10 @@ fi
 if [ -d "web" ]; then
     log_section "4. Frontend Code Quality"
 
-    # Check if npm is installed
-    if ! command -v npm &> /dev/null; then
-        log_warning "npm not installed - skipping frontend checks"
-        log_suggestion "Install Node.js: https://nodejs.org/"
+    # Check if pnpm is installed
+    if ! command -v pnpm &> /dev/null; then
+        log_warning "pnpm not installed - skipping frontend checks"
+        log_suggestion "Install pnpm: npm install -g pnpm"
     else
         cd web
 
@@ -235,24 +235,24 @@ if [ -d "web" ]; then
         if [ ! -d "node_modules" ]; then
             log_warning "Dependencies not installed"
             log_suggestion "Install dependencies:"
-            log_command "cd web && npm install"
+            log_command "cd web && pnpm install"
             cd ..
         else
             # Check linting
             log_check "Frontend linting"
-            if npm run lint > /tmp/lint-output.txt 2>&1; then
+            if pnpm run lint > /tmp/lint-output.txt 2>&1; then
                 log_pass "No linting issues"
             else
                 log_error "Linting issues found:"
                 tail -20 /tmp/lint-output.txt | sed 's/^/   /' || true
                 log_suggestion "Fix linting issues:"
-                log_command "cd web && npm run lint -- --fix"
+                log_command "cd web && pnpm run lint -- --fix"
                 echo ""
             fi
 
             # Check type errors
             log_check "TypeScript type checking"
-            if npm run type-check > /tmp/typecheck-output.txt 2>&1; then
+            if pnpm run type-check > /tmp/typecheck-output.txt 2>&1; then
                 log_pass "No type errors"
             else
                 log_error "Type errors found:"
@@ -263,7 +263,7 @@ if [ -d "web" ]; then
 
             # Check build
             log_check "Frontend build"
-            if npm run build > /tmp/build-output.txt 2>&1; then
+            if pnpm run build > /tmp/build-output.txt 2>&1; then
                 log_pass "Build successful"
             else
                 log_error "Build failed:"

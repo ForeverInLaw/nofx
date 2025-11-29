@@ -105,6 +105,7 @@ export interface AIModel {
   apiKey?: string
   customApiUrl?: string
   customModelName?: string
+  serviceAccountJson?: string
 }
 
 export interface Exchange {
