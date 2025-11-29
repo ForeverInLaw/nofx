@@ -414,6 +414,7 @@ type CreateTraderRequest struct {
 	IsCrossMargin        *bool   `json:"is_cross_margin"`        // 指针类型，nil表示使用默认值true
 	UseCoinPool          bool    `json:"use_coin_pool"`
 	UseOITop             bool    `json:"use_oi_top"`
+	ThinkingLevel        string  `json:"thinking_level"`
 }
 
 type ModelConfig struct {
@@ -664,6 +665,7 @@ func (s *Server) handleCreateTrader(c *gin.Context) {
 		SystemPromptTemplate: systemPromptTemplate,
 		IsCrossMargin:        isCrossMargin,
 		ScanIntervalMinutes:  scanIntervalMinutes,
+		ThinkingLevel:        req.ThinkingLevel,
 		IsRunning:            false,
 	}
 
@@ -705,6 +707,7 @@ type UpdateTraderRequest struct {
 	OverrideBasePrompt   bool    `json:"override_base_prompt"`
 	SystemPromptTemplate string  `json:"system_prompt_template"`
 	IsCrossMargin        *bool   `json:"is_cross_margin"`
+	ThinkingLevel        string  `json:"thinking_level"`
 }
 
 // handleUpdateTrader 更新交易员配置
@@ -784,6 +787,7 @@ func (s *Server) handleUpdateTrader(c *gin.Context) {
 		SystemPromptTemplate: systemPromptTemplate,
 		IsCrossMargin:        isCrossMargin,
 		ScanIntervalMinutes:  scanIntervalMinutes,
+		ThinkingLevel:        req.ThinkingLevel,
 		IsRunning:            existingTrader.IsRunning, // 保持原值
 	}
 

@@ -381,8 +381,13 @@ func (d *Database) createTables() error {
 	}
 
 	for _, query := range alterQueries {
-		// 忽略已存在字段的错误
-		d.db.Exec(query)
+		// 忽略已存在字段的错误，但记录其他错误
+		if _, err := d.db.Exec(query); err != nil {
+			// 只有当错误不是"duplicate column name"时才记录
+			if !strings.Contains(err.Error(), "duplicate column name") {
+				log.Printf("⚠️ 执行迁移查询失败 [%s]: %v", query, err)
+			}
+		}
 	}
 
 	// 检查是否需要迁移exchanges表的主键结构
