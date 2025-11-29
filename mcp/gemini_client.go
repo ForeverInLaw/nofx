@@ -111,13 +111,20 @@ func (c *GeminiClient) buildMCPRequestBody(systemPrompt, userPrompt string) map[
 		level := strings.ToUpper(c.ThinkingLevel)
 		genConfig := requestBody["generationConfig"].(map[string]interface{})
 		
-		// Create nested thinkingConfig
-		// Based on user feedback: config: { thinkingConfig: { thinkingLevel: "high" } }
-		// And REST API usually requires includeThoughts: true for thinking models
-		genConfig["thinkingConfig"] = map[string]interface{}{
-			"includeThoughts": true,
-			"thinkingLevel":   level,
+		// Create nested thinkingConfig using snake_case for REST API
+		// JS SDK uses camelCase (thinkingConfig), but REST API expects snake_case (thinking_config)
+		genConfig["thinking_config"] = map[string]interface{}{
+			"include_thoughts": true,
+			"thinking_level":   level,
 		}
+	}
+
+	// Safety Settings - Disable blocking to prevent empty responses for financial content
+	requestBody["safetySettings"] = []map[string]string{
+		{"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"},
+		{"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE"},
+		{"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
+		{"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"},
 	}
 
 	return requestBody
@@ -148,7 +155,7 @@ func (c *GeminiClient) parseMCPResponse(body []byte) (string, error) {
 	}
 
 	if len(result.Candidates) == 0 || len(result.Candidates[0].Content.Parts) == 0 {
-		return "", fmt.Errorf("API返回空响应 (Candidates empty)")
+		return "", fmt.Errorf("API返回空响应 (Candidates empty). 原始响应: %s", string(body))
 	}
 
 	return result.Candidates[0].Content.Parts[0].Text, nil
