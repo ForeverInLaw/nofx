@@ -28,6 +28,7 @@ interface TraderConfigData {
   use_oi_top: boolean
   initial_balance?: number // 可选：创建时不需要，编辑时使用
   scan_interval_minutes: number
+  thinking_level?: string
 }
 
 interface TraderConfigModalProps {
@@ -64,6 +65,7 @@ export function TraderConfigModal({
     use_coin_pool: false,
     use_oi_top: false,
     scan_interval_minutes: 3,
+    thinking_level: '',
   })
   const [isSaving, setIsSaving] = useState(false)
   const [availableCoins, setAvailableCoins] = useState<string[]>([])
@@ -254,6 +256,7 @@ export function TraderConfigModal({
         use_coin_pool: formData.use_coin_pool,
         use_oi_top: formData.use_oi_top,
         scan_interval_minutes: formData.scan_interval_minutes,
+        thinking_level: formData.thinking_level,
       }
 
       // 只在编辑模式时包含initial_balance（用于手动更新）
@@ -352,6 +355,25 @@ export function TraderConfigModal({
                     ))}
                   </select>
                 </div>
+                {/* Gemini Thinking Level */}
+                {(availableModels.find(m => m.id === formData.ai_model)?.provider === 'gemini' || formData.ai_model.includes('gemini')) && (
+                  <div>
+                    <label className="text-sm text-[#EAECEF] block mb-2">
+                      Thinking Level
+                    </label>
+                    <select
+                      value={formData.thinking_level || ''}
+                      onChange={(e) =>
+                        handleInputChange('thinking_level', e.target.value)
+                      }
+                      className="w-full px-3 py-2 bg-[#0B0E11] border border-[#2B3139] rounded text-[#EAECEF] focus:border-[#F0B90B] focus:outline-none"
+                    >
+                      <option value="">Default (High)</option>
+                      <option value="low">Low (Faster)</option>
+                      <option value="high">High (Deeper)</option>
+                    </select>
+                  </div>
+                )}
                 <div>
                   <label className="text-sm text-[#EAECEF] block mb-2">
                     交易所

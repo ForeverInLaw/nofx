@@ -1063,6 +1063,7 @@ func (tm *TraderManager) loadSingleTrader(traderCfg *config.TraderRecord, aiMode
 		TradingCoins:         tradingCoins,
 		SystemPromptTemplate: traderCfg.SystemPromptTemplate, // 系统提示词模板
 		HyperliquidTestnet:   exchangeCfg.Testnet,            // Hyperliquid测试网
+		ThinkingLevel:        traderCfg.ThinkingLevel,        // Gemini Thinking Level
 	}
 
 	// 根据交易所类型设置API密钥

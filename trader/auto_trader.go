@@ -61,6 +61,7 @@ type AutoTraderConfig struct {
 	CustomAPIKey       string
 	CustomModelName    string
 	ServiceAccountJSON string // Google Cloud Service Account JSON
+	ThinkingLevel      string // Gemini 3 thinking level: low, high
 
 	// 扫描配置
 	ScanInterval time.Duration // 扫描间隔（建议3分钟）

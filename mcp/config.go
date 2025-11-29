@@ -16,9 +16,10 @@ type Config struct {
 	Model    string
 
 	// 行为配置
-	MaxTokens   int
-	Temperature float64
-	UseFullURL  bool
+	MaxTokens     int
+	Temperature   float64
+	ThinkingLevel string // Gemini 3 thinking level: low, high
+	UseFullURL    bool
 
 	// 重试配置
 	MaxRetries     int

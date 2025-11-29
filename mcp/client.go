@@ -41,12 +41,13 @@ type Client struct {
 	Provider   string
 	APIKey     string
 	BaseURL    string
-	Model      string
-	UseFullURL bool // 是否使用完整URL（不添加/chat/completions）
-	MaxTokens  int  // AI响应的最大token数
-	ServiceAccountJSON string // Google Cloud Service Account JSON
-
-	httpClient *http.Client
+		Model              string
+		UseFullURL         bool   // 是否使用完整URL（不添加/chat/completions）
+		MaxTokens          int    // AI响应的最大token数
+		ThinkingLevel      string // Gemini 3 thinking level
+		ServiceAccountJSON string // Google Cloud Service Account JSON
+	
+		httpClient *http.Client
 	logger     Logger // 日志器（可替换）
 	config     *Config // 配置对象（保存所有配置）
 
@@ -94,11 +95,12 @@ func NewClient(opts ...ClientOption) AIClient {
 	client := &Client{
 		Provider:   cfg.Provider,
 		APIKey:     cfg.APIKey,
-		BaseURL:    cfg.BaseURL,
-		Model:      cfg.Model,
-		MaxTokens:  cfg.MaxTokens,
-		UseFullURL: cfg.UseFullURL,
-		httpClient: cfg.HTTPClient,
+		BaseURL:       cfg.BaseURL,
+		Model:         cfg.Model,
+		MaxTokens:     cfg.MaxTokens,
+		ThinkingLevel: cfg.ThinkingLevel,
+		UseFullURL:    cfg.UseFullURL,
+		httpClient:    cfg.HTTPClient,
 		logger:     cfg.Logger,
 		config:     cfg,
 	}

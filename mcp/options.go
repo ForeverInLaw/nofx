@@ -92,6 +92,16 @@ func WithTemperature(temperature float64) ClientOption {
 	}
 }
 
+// WithThinkingLevel 设置思考深度 (low, high)
+//
+// 使用示例：
+//   client := mcp.NewClient(mcp.WithThinkingLevel("high"))
+func WithThinkingLevel(level string) ClientOption {
+	return func(c *Config) {
+		c.ThinkingLevel = level
+	}
+}
+
 // ============================================================
 // Provider 配置选项
 // ============================================================
@@ -158,5 +168,19 @@ func WithQwenConfig(apiKey string) ClientOption {
 		c.APIKey = apiKey
 		c.BaseURL = DefaultQwenBaseURL
 		c.Model = DefaultQwenModel
+	}
+}
+
+// WithGeminiConfig 设置 Gemini 配置
+func WithGeminiConfig(apiKey string) ClientOption {
+	return func(c *Config) {
+		c.Provider = "gemini" // Use const from gemini_client.go but avoid circular dependency if possible.
+		// Actually options.go is in mcp package so it can access ProviderGemini if it was exported.
+		// But gemini_client.go is in the same package.
+		// ProviderGemini is defined in gemini_client.go
+		c.Provider = "gemini"
+		c.APIKey = apiKey
+		c.BaseURL = "https://generativelanguage.googleapis.com/v1beta"
+		c.Model = "gemini-1.5-pro" // Default model
 	}
 }
