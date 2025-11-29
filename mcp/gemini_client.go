@@ -110,7 +110,14 @@ func (c *GeminiClient) buildMCPRequestBody(systemPrompt, userPrompt string) map[
 		// 转换为大写 (LOW, HIGH)
 		level := strings.ToUpper(c.ThinkingLevel)
 		genConfig := requestBody["generationConfig"].(map[string]interface{})
-		genConfig["thinkingLevel"] = level
+		
+		// Create nested thinkingConfig
+		// Based on user feedback: config: { thinkingConfig: { thinkingLevel: "high" } }
+		// And REST API usually requires includeThoughts: true for thinking models
+		genConfig["thinkingConfig"] = map[string]interface{}{
+			"includeThoughts": true,
+			"thinkingLevel":   level,
+		}
 	}
 
 	return requestBody
