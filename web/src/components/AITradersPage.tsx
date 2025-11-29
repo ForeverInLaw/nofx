@@ -474,7 +474,8 @@ export function AITradersPage({ onTraderSelect }: AITradersPageProps) {
     modelId: string,
     apiKey: string,
     customApiUrl?: string,
-    customModelName?: string
+    customModelName?: string,
+    serviceAccountJson?: string
   ) => {
     try {
       // 创建或更新用户的模型配置
@@ -499,6 +500,7 @@ export function AITradersPage({ onTraderSelect }: AITradersPageProps) {
                   apiKey,
                   customApiUrl: customApiUrl || '',
                   customModelName: customModelName || '',
+                  serviceAccountJson: serviceAccountJson || '',
                   enabled: true,
                 }
               : m
@@ -510,6 +512,7 @@ export function AITradersPage({ onTraderSelect }: AITradersPageProps) {
           apiKey,
           customApiUrl: customApiUrl || '',
           customModelName: customModelName || '',
+          serviceAccountJson: serviceAccountJson || '',
           enabled: true,
         }
         updatedModels = [...(allModels || []), newModel]
@@ -524,6 +527,7 @@ export function AITradersPage({ onTraderSelect }: AITradersPageProps) {
               api_key: model.apiKey || '',
               custom_api_url: model.customApiUrl || '',
               custom_model_name: model.customModelName || '',
+              service_account_json: model.serviceAccountJson || '',
             },
           ])
         ),
@@ -1476,7 +1480,8 @@ function ModelConfigModal({
     modelId: string,
     apiKey: string,
     baseUrl?: string,
-    modelName?: string
+    modelName?: string,
+    serviceAccountJson?: string
   ) => void
   onDelete: (modelId: string) => void
   onClose: () => void
@@ -1486,6 +1491,7 @@ function ModelConfigModal({
   const [apiKey, setApiKey] = useState('')
   const [baseUrl, setBaseUrl] = useState('')
   const [modelName, setModelName] = useState('')
+  const [serviceAccountJson, setServiceAccountJson] = useState('')
 
   // 获取当前编辑的模型信息 - 编辑时从已配置的模型中查找，新建时从所有支持的模型中查找
   const selectedModel = editingModelId
@@ -1498,18 +1504,20 @@ function ModelConfigModal({
       setApiKey(selectedModel.apiKey || '')
       setBaseUrl(selectedModel.customApiUrl || '')
       setModelName(selectedModel.customModelName || '')
+      setServiceAccountJson(selectedModel.serviceAccountJson || '')
     }
   }, [editingModelId, selectedModel])
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    if (!selectedModelId || !apiKey.trim()) return
+    if (!selectedModelId || (!apiKey.trim() && !serviceAccountJson.trim())) return
 
     onSave(
       selectedModelId,
       apiKey.trim(),
       baseUrl.trim() || undefined,
-      modelName.trim() || undefined
+      modelName.trim() || undefined,
+      serviceAccountJson.trim() || undefined
     )
   }
 
@@ -1690,6 +1698,29 @@ function ModelConfigModal({
                   </div>
                 </div>
 
+                <div>
+                  <label
+                    className="block text-sm font-semibold mb-2"
+                    style={{ color: '#EAECEF' }}
+                  >
+                    Google Cloud Service Account JSON (Optional)
+                  </label>
+                  <textarea
+                    value={serviceAccountJson}
+                    onChange={(e) => setServiceAccountJson(e.target.value)}
+                    placeholder='{"type":"service_account","project_id":"...","private_key":"..."}'
+                    className="w-full px-3 py-2 rounded font-mono text-xs h-32 resize-none"
+                    style={{
+                      background: '#0B0E11',
+                      border: '1px solid #2B3139',
+                      color: '#EAECEF',
+                    }}
+                  />
+                  <div className="text-xs mt-1" style={{ color: '#848E9C' }}>
+                    Required for Google Cloud Vertex AI (e.g., DeepSeek on Vertex AI). Leave blank for other providers.
+                  </div>
+                </div>
+
                 <div
                   className="p-4 rounded"
                   style={{
@@ -1730,7 +1761,7 @@ function ModelConfigModal({
             </button>
             <button
               type="submit"
-              disabled={!selectedModel || !apiKey.trim()}
+              disabled={!selectedModel || (!apiKey.trim() && !serviceAccountJson.trim())}
               className="flex-1 px-4 py-2 rounded text-sm font-semibold disabled:opacity-50"
               style={{ background: '#F0B90B', color: '#000' }}
             >

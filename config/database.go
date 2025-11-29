@@ -626,16 +626,17 @@ type User struct {
 
 // AIModelConfig AI模型配置
 type AIModelConfig struct {
-	ID              string    `json:"id"`
-	UserID          string    `json:"user_id"`
-	Name            string    `json:"name"`
-	Provider        string    `json:"provider"`
-	Enabled         bool      `json:"enabled"`
-	APIKey          string    `json:"apiKey"`
-	CustomAPIURL    string    `json:"customApiUrl"`
-	CustomModelName string    `json:"customModelName"`
-	CreatedAt       time.Time `json:"created_at"`
-	UpdatedAt       time.Time `json:"updated_at"`
+	ID                 string    `json:"id"`
+	UserID             string    `json:"user_id"`
+	Name               string    `json:"name"`
+	Provider           string    `json:"provider"`
+	Enabled            bool      `json:"enabled"`
+	APIKey             string    `json:"apiKey"`
+	CustomAPIURL       string    `json:"customApiUrl"`
+	CustomModelName    string    `json:"customModelName"`
+	ServiceAccountJSON string    `json:"serviceAccountJson"` // Google Cloud Service Account JSON
+	CreatedAt          time.Time `json:"created_at"`
+	UpdatedAt          time.Time `json:"updated_at"`
 }
 
 // ExchangeConfig 交易所配置
@@ -814,6 +815,7 @@ func (d *Database) GetAIModels(userID string) ([]*AIModelConfig, error) {
 		SELECT id, user_id, name, provider, enabled, api_key,
 		       COALESCE(custom_api_url, '') as custom_api_url,
 		       COALESCE(custom_model_name, '') as custom_model_name,
+		       COALESCE(service_account_json, '') as service_account_json,
 		       created_at, updated_at
 		FROM ai_models WHERE user_id = ? ORDER BY id
 	`, userID)
@@ -829,6 +831,7 @@ func (d *Database) GetAIModels(userID string) ([]*AIModelConfig, error) {
 		err := rows.Scan(
 			&model.ID, &model.UserID, &model.Name, &model.Provider,
 			&model.Enabled, &model.APIKey, &model.CustomAPIURL, &model.CustomModelName,
+			&model.ServiceAccountJSON,
 			&model.CreatedAt, &model.UpdatedAt,
 		)
 		if err != nil {
@@ -940,7 +943,7 @@ func (d *Database) firstEnabledAIModel(userID string) (*AIModelConfig, error) {
 }
 
 // UpdateAIModel 更新AI模型配置，如果不存在则创建用户特定配置
-func (d *Database) UpdateAIModel(userID, id string, enabled bool, apiKey, customAPIURL, customModelName string) error {
+func (d *Database) UpdateAIModel(userID, id string, enabled bool, apiKey, customAPIURL, customModelName, serviceAccountJSON string) error {
 	// 先尝试精确匹配 ID（新版逻辑，支持多个相同 provider 的模型）
 	var existingID string
 	err := d.db.QueryRow(`
@@ -951,9 +954,9 @@ func (d *Database) UpdateAIModel(userID, id string, enabled bool, apiKey, custom
 		// 找到了现有配置（精确匹配 ID），更新它
 		encryptedAPIKey := d.encryptSensitiveData(apiKey)
 		_, err = d.db.Exec(`
-			UPDATE ai_models SET enabled = ?, api_key = ?, custom_api_url = ?, custom_model_name = ?, updated_at = datetime('now')
+			UPDATE ai_models SET enabled = ?, api_key = ?, custom_api_url = ?, custom_model_name = ?, service_account_json = ?, updated_at = datetime('now')
 			WHERE id = ? AND user_id = ?
-		`, enabled, encryptedAPIKey, customAPIURL, customModelName, existingID, userID)
+		`, enabled, encryptedAPIKey, customAPIURL, customModelName, serviceAccountJSON, existingID, userID)
 		return err
 	}
 
@@ -968,9 +971,9 @@ func (d *Database) UpdateAIModel(userID, id string, enabled bool, apiKey, custom
 		log.Printf("⚠️  使用旧版 provider 匹配更新模型: %s -> %s", provider, existingID)
 		encryptedAPIKey := d.encryptSensitiveData(apiKey)
 		_, err = d.db.Exec(`
-			UPDATE ai_models SET enabled = ?, api_key = ?, custom_api_url = ?, custom_model_name = ?, updated_at = datetime('now')
+			UPDATE ai_models SET enabled = ?, api_key = ?, custom_api_url = ?, custom_model_name = ?, service_account_json = ?, updated_at = datetime('now')
 			WHERE id = ? AND user_id = ?
-		`, enabled, encryptedAPIKey, customAPIURL, customModelName, existingID, userID)
+		`, enabled, encryptedAPIKey, customAPIURL, customModelName, serviceAccountJSON, existingID, userID)
 		return err
 	}
 
@@ -1016,9 +1019,9 @@ func (d *Database) UpdateAIModel(userID, id string, enabled bool, apiKey, custom
 	log.Printf("✓ 创建新的 AI 模型配置: ID=%s, Provider=%s, Name=%s", newModelID, provider, name)
 	encryptedAPIKey := d.encryptSensitiveData(apiKey)
 	_, err = d.db.Exec(`
-		INSERT INTO ai_models (id, user_id, name, provider, enabled, api_key, custom_api_url, custom_model_name, created_at, updated_at)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
-	`, newModelID, userID, name, provider, enabled, encryptedAPIKey, customAPIURL, customModelName)
+		INSERT INTO ai_models (id, user_id, name, provider, enabled, api_key, custom_api_url, custom_model_name, service_account_json, created_at, updated_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
+	`, newModelID, userID, name, provider, enabled, encryptedAPIKey, customAPIURL, customModelName, serviceAccountJSON)
 
 	return err
 }

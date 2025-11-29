@@ -57,9 +57,10 @@ type AutoTraderConfig struct {
 	QwenKey     string
 
 	// 自定义AI API配置
-	CustomAPIURL    string
-	CustomAPIKey    string
-	CustomModelName string
+	CustomAPIURL       string
+	CustomAPIKey       string
+	CustomModelName    string
+	ServiceAccountJSON string // Google Cloud Service Account JSON
 
 	// 扫描配置
 	ScanInterval time.Duration // 扫描间隔（建议3分钟）
@@ -142,11 +143,18 @@ func NewAutoTrader(config AutoTraderConfig, database interface{}, userID string)
 	if config.AIModel == "custom" {
 		// 使用自定义API
 		mcpClient.SetAPIKey(config.CustomAPIKey, config.CustomAPIURL, config.CustomModelName)
+		if client, ok := mcpClient.(*mcp.Client); ok {
+			client.SetServiceAccountJSON(config.ServiceAccountJSON)
+		}
 		log.Printf("🤖 [%s] 使用自定义AI API: %s (模型: %s)", config.Name, config.CustomAPIURL, config.CustomModelName)
 	} else if config.UseQwen || config.AIModel == "qwen" {
 		// 使用Qwen (支持自定义URL和Model)
-		mcpClient = mcp.NewQwenClient()
-		mcpClient.SetAPIKey(config.QwenKey, config.CustomAPIURL, config.CustomModelName)
+		mcpClient = mcp.NewClient(mcp.WithQwenConfig(config.QwenKey))
+		// mcp.NewClient returns AIClient interface, assume it's *Client for setting custom props if not in options
+		if client, ok := mcpClient.(*mcp.Client); ok {
+			client.SetAPIKey(config.QwenKey, config.CustomAPIURL, config.CustomModelName)
+			client.SetServiceAccountJSON(config.ServiceAccountJSON)
+		}
 		if config.CustomAPIURL != "" || config.CustomModelName != "" {
 			log.Printf("🤖 [%s] 使用阿里云Qwen AI (自定义URL: %s, 模型: %s)", config.Name, config.CustomAPIURL, config.CustomModelName)
 		} else {
@@ -154,8 +162,11 @@ func NewAutoTrader(config AutoTraderConfig, database interface{}, userID string)
 		}
 	} else {
 		// 默认使用DeepSeek (支持自定义URL和Model)
-		mcpClient = mcp.NewDeepSeekClient()
-		mcpClient.SetAPIKey(config.DeepSeekKey, config.CustomAPIURL, config.CustomModelName)
+		mcpClient = mcp.NewClient(mcp.WithDeepSeekConfig(config.DeepSeekKey))
+		if client, ok := mcpClient.(*mcp.Client); ok {
+			client.SetAPIKey(config.DeepSeekKey, config.CustomAPIURL, config.CustomModelName)
+			client.SetServiceAccountJSON(config.ServiceAccountJSON)
+		}
 		if config.CustomAPIURL != "" || config.CustomModelName != "" {
 			log.Printf("🤖 [%s] 使用DeepSeek AI (自定义URL: %s, 模型: %s)", config.Name, config.CustomAPIURL, config.CustomModelName)
 		} else {

@@ -2,12 +2,15 @@ package mcp
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"strings"
 	"time"
+
+	"golang.org/x/oauth2/google"
 )
 
 const (
@@ -41,6 +44,7 @@ type Client struct {
 	Model      string
 	UseFullURL bool // 是否使用完整URL（不添加/chat/completions）
 	MaxTokens  int  // AI响应的最大token数
+	ServiceAccountJSON string // Google Cloud Service Account JSON
 
 	httpClient *http.Client
 	logger     Logger // 日志器（可替换）
@@ -133,10 +137,15 @@ func (client *Client) SetTimeout(timeout time.Duration) {
 	client.httpClient.Timeout = timeout
 }
 
+// SetServiceAccountJSON 设置 Google Cloud Service Account JSON
+func (client *Client) SetServiceAccountJSON(jsonStr string) {
+	client.ServiceAccountJSON = jsonStr
+}
+
 // CallWithMessages 模板方法 - 固定的重试流程（不可重写）
 func (client *Client) CallWithMessages(systemPrompt, userPrompt string) (string, error) {
-	if client.APIKey == "" {
-		return "", fmt.Errorf("AI API密钥未设置，请先调用 SetAPIKey")
+	if client.APIKey == "" && client.ServiceAccountJSON == "" {
+		return "", fmt.Errorf("AI API密钥或Service Account未设置，请先调用 SetAPIKey 或 SetServiceAccountJSON")
 	}
 
 	// 固定的重试流程
@@ -175,7 +184,36 @@ func (client *Client) CallWithMessages(systemPrompt, userPrompt string) (string,
 }
 
 func (client *Client) setAuthHeader(reqHeader http.Header) {
+	// Check if Google Cloud Vertex AI
+	if client.ServiceAccountJSON != "" && strings.Contains(client.BaseURL, "aiplatform.googleapis.com") {
+		token, err := client.getGoogleCloudToken()
+		if err == nil {
+			reqHeader.Set("Authorization", fmt.Sprintf("Bearer %s", token))
+			return
+		}
+		client.logger.Errorf("获取 Google Cloud token 失败: %v", err)
+	}
 	reqHeader.Set("Authorization", fmt.Sprintf("Bearer %s", client.APIKey))
+}
+
+// getGoogleCloudToken 从 Service Account JSON 生成 OAuth2 access token
+func (client *Client) getGoogleCloudToken() (string, error) {
+	ctx := context.Background()
+
+	// 解析 Service Account JSON
+	creds, err := google.CredentialsFromJSON(ctx, []byte(client.ServiceAccountJSON),
+		"https://www.googleapis.com/auth/cloud-platform")
+	if err != nil {
+		return "", fmt.Errorf("解析 Service Account JSON 失败: %w", err)
+	}
+
+	// 获取 token
+	token, err := creds.TokenSource.Token()
+	if err != nil {
+		return "", fmt.Errorf("获取 OAuth2 token 失败: %w", err)
+	}
+
+	return token.AccessToken, nil
 }
 
 func (client *Client) buildMCPRequestBody(systemPrompt, userPrompt string) map[string]any {
