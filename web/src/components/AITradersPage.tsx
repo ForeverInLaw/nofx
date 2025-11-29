@@ -908,7 +908,11 @@ export function AITradersPage({ onTraderSelect }: AITradersPageProps) {
                           className="w-7 h-7 md:w-8 md:h-8 rounded-full flex items-center justify-center text-xs md:text-sm font-bold"
                           style={{
                             background:
-                              model.id === 'deepseek' ? '#60a5fa' : '#c084fc',
+                              model.id === 'deepseek'
+                                ? '#60a5fa'
+                                : model.id === 'gemini'
+                                  ? '#34A853'
+                                  : '#c084fc',
                             color: '#fff',
                           }}
                         >
@@ -1049,7 +1053,9 @@ export function AITradersPage({ onTraderSelect }: AITradersPageProps) {
                     style={{
                       background: trader.ai_model.includes('deepseek')
                         ? '#60a5fa'
-                        : '#c084fc',
+                        : trader.ai_model.includes('gemini')
+                          ? '#34A853'
+                          : '#c084fc',
                       color: '#fff',
                     }}
                   >
@@ -1067,7 +1073,9 @@ export function AITradersPage({ onTraderSelect }: AITradersPageProps) {
                       style={{
                         color: trader.ai_model.includes('deepseek')
                           ? '#60a5fa'
-                          : '#c084fc',
+                          : trader.ai_model.includes('gemini')
+                            ? '#34A853'
+                            : '#c084fc',
                       }}
                     >
                       {getModelDisplayName(

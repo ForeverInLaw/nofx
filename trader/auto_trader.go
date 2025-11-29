@@ -55,6 +55,7 @@ type AutoTraderConfig struct {
 	UseQwen     bool
 	DeepSeekKey string
 	QwenKey     string
+	GeminiKey   string
 
 	// 自定义AI API配置
 	CustomAPIURL       string
@@ -161,6 +162,38 @@ func NewAutoTrader(config AutoTraderConfig, database interface{}, userID string)
 		} else {
 			log.Printf("🤖 [%s] 使用阿里云Qwen AI", config.Name)
 		}
+	} else if config.AIModel == "gemini" {
+		// 使用Gemini
+		opts := []mcp.ClientOption{
+			mcp.WithAPIKey(config.GeminiKey),
+			mcp.WithModel(config.CustomModelName), // 支持自定义模型名
+		}
+		if config.CustomAPIURL != "" {
+			opts = append(opts, mcp.WithBaseURL(config.CustomAPIURL))
+		} else {
+			opts = append(opts, mcp.WithBaseURL("https://generativelanguage.googleapis.com/v1beta"))
+		}
+		if config.ServiceAccountJSON != "" {
+			// 如果提供了 Service Account，mcp/client.go 会自动处理，
+			// 但我们需要确保 Client struct 接收到它。
+			// NewGeminiClientWithOptions 内部调用 NewClient，它不直接暴露 SetServiceAccountJSON。
+			// 所以我们需要一种方式传递它，或者在创建后强制转换并设置。
+			// 现在的 mcp.Client 有 SetServiceAccountJSON 方法。
+		}
+		if config.ThinkingLevel != "" {
+			opts = append(opts, mcp.WithThinkingLevel(config.ThinkingLevel))
+		}
+
+		mcpClient = mcp.NewGeminiClientWithOptions(opts...)
+		
+		// 手动设置 ServiceAccountJSON (如果 NewGeminiClientWithOptions 没有通过 Option 传递的方式)
+		// 目前 mcp 包没有 WithServiceAccountJSON 选项，所以我们需要添加或者转换类型设置。
+		// 检查 mcp/client.go 是否有 SetServiceAccountJSON
+		if client, ok := mcpClient.(*mcp.GeminiClient); ok {
+			client.SetServiceAccountJSON(config.ServiceAccountJSON)
+		}
+
+		log.Printf("🤖 [%s] 使用 Google Gemini AI", config.Name)
 	} else {
 		// 默认使用DeepSeek (支持自定义URL和Model)
 		mcpClient = mcp.NewClient(mcp.WithDeepSeekConfig(config.DeepSeekKey))

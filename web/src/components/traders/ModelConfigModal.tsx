@@ -145,7 +145,9 @@ export function ModelConfigModal({
                           background:
                             selectedModel.id === 'deepseek'
                               ? '#60a5fa'
-                              : '#c084fc',
+                              : selectedModel.id === 'gemini'
+                                ? '#34A853'
+                                : '#c084fc',
                           color: '#fff',
                         }}
                       >
