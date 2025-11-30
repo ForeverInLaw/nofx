@@ -1057,12 +1057,16 @@ function StatCard({
   )
 }
 
+import { ConfirmDialogProvider } from './components/ConfirmDialog'
+
 // Wrap App with providers
 export default function AppWithProviders() {
   return (
     <LanguageProvider>
       <AuthProvider>
-        <App />
+        <ConfirmDialogProvider>
+          <App />
+        </ConfirmDialogProvider>
       </AuthProvider>
     </LanguageProvider>
   )
