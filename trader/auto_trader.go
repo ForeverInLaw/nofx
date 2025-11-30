@@ -175,13 +175,13 @@ func NewAutoTrader(config AutoTraderConfig, database interface{}, userID string)
 				ProjectID string `json:"project_id"`
 			}
 			if err := json.Unmarshal([]byte(config.ServiceAccountJSON), &sa); err == nil && sa.ProjectID != "" {
-				// Default to us-central1 for Vertex AI
-				// Format: https://us-central1-aiplatform.googleapis.com/v1/projects/{PROJECT_ID}/locations/us-central1/publishers/google/models/{MODEL_ID}
+				// Default to global for Gemini 3 Pro Preview
+				// Format: https://aiplatform.googleapis.com/v1/projects/{PROJECT_ID}/locations/global/publishers/google/models/{MODEL_ID}
 				modelName := config.CustomModelName
 				if modelName == "" {
 					modelName = "gemini-1.5-pro" // Fallback
 				}
-				vertexURL := fmt.Sprintf("https://us-central1-aiplatform.googleapis.com/v1/projects/%s/locations/us-central1/publishers/google/models/%s", sa.ProjectID, modelName)
+				vertexURL := fmt.Sprintf("https://aiplatform.googleapis.com/v1/projects/%s/locations/global/publishers/google/models/%s", sa.ProjectID, modelName)
 				opts = append(opts, mcp.WithBaseURL(vertexURL))
 				log.Printf("🤖 [%s] Detected Service Account, auto-configuring Vertex AI URL: %s", config.Name, vertexURL)
 			} else {
