@@ -700,9 +700,9 @@ func validateJSONFormat(jsonStr string) error {
 	}
 
 	// 检查是否包含范围符号 ~（LLM 常见错误）
-	if strings.Contains(jsonStr, "~") {
-		return fmt.Errorf("JSON 中不可包含范围符号 ~，所有数字必须是精确的单一值")
-	}
+	// if strings.Contains(jsonStr, "~") {
+	// 	return fmt.Errorf("JSON 中不可包含范围符号 ~，所有数字必须是精确的单一值")
+	// }
 
 	// 检查是否包含千位分隔符（如 98,000）
 	// 使用简单的模式匹配：数字+逗号+3位数字
