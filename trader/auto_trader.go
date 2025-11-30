@@ -204,7 +204,14 @@ func NewAutoTrader(config AutoTraderConfig, database interface{}, userID string)
 		// 目前 mcp 包没有 WithServiceAccountJSON 选项，所以我们需要添加或者转换类型设置。
 		// 检查 mcp/client.go 是否有 SetServiceAccountJSON
 		if client, ok := mcpClient.(*mcp.GeminiClient); ok {
-			client.SetServiceAccountJSON(config.ServiceAccountJSON)
+			if config.ServiceAccountJSON != "" {
+				client.SetServiceAccountJSON(config.ServiceAccountJSON)
+				log.Printf("✅ [Debug] ServiceAccountJSON set for Gemini Client (len=%d)", len(config.ServiceAccountJSON))
+			} else {
+				log.Printf("⚠️ [Debug] ServiceAccountJSON is empty in config for Gemini Client")
+			}
+		} else {
+			log.Printf("❌ [Debug] Failed to cast mcpClient to *mcp.GeminiClient")
 		}
 
 		log.Printf("🤖 [%s] 使用 Google Gemini AI", config.Name)
