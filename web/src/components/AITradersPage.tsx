@@ -1725,7 +1725,7 @@ function ModelConfigModal({
                     }}
                   />
                   <div className="text-xs mt-1" style={{ color: '#848E9C' }}>
-                    Required for Google Cloud Vertex AI (e.g., DeepSeek on Vertex AI). Leave blank for other providers.
+                    Required for Google Cloud Vertex AI (e.g., Gemini or DeepSeek). Leave blank for other providers.
                   </div>
                 </div>
 

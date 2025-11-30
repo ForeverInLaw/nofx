@@ -168,18 +168,32 @@ func NewAutoTrader(config AutoTraderConfig, database interface{}, userID string)
 			mcp.WithAPIKey(config.GeminiKey),
 			mcp.WithModel(config.CustomModelName), // 支持自定义模型名
 		}
-		if config.CustomAPIURL != "" {
+		
+		// Auto-detect Vertex AI configuration if Service Account is present but CustomAPIURL is missing
+		if config.CustomAPIURL == "" && config.ServiceAccountJSON != "" {
+			var sa struct {
+				ProjectID string `json:"project_id"`
+			}
+			if err := json.Unmarshal([]byte(config.ServiceAccountJSON), &sa); err == nil && sa.ProjectID != "" {
+				// Default to us-central1 for Vertex AI
+				// Format: https://us-central1-aiplatform.googleapis.com/v1/projects/{PROJECT_ID}/locations/us-central1/publishers/google/models/{MODEL_ID}
+				modelName := config.CustomModelName
+				if modelName == "" {
+					modelName = "gemini-1.5-pro" // Fallback
+				}
+				vertexURL := fmt.Sprintf("https://us-central1-aiplatform.googleapis.com/v1/projects/%s/locations/us-central1/publishers/google/models/%s", sa.ProjectID, modelName)
+				opts = append(opts, mcp.WithBaseURL(vertexURL))
+				log.Printf("🤖 [%s] Detected Service Account, auto-configuring Vertex AI URL: %s", config.Name, vertexURL)
+			} else {
+				// Fallback to default AI Studio endpoint
+				opts = append(opts, mcp.WithBaseURL("https://generativelanguage.googleapis.com/v1beta"))
+			}
+		} else if config.CustomAPIURL != "" {
 			opts = append(opts, mcp.WithBaseURL(config.CustomAPIURL))
 		} else {
 			opts = append(opts, mcp.WithBaseURL("https://generativelanguage.googleapis.com/v1beta"))
 		}
-		if config.ServiceAccountJSON != "" {
-			// 如果提供了 Service Account，mcp/client.go 会自动处理，
-			// 但我们需要确保 Client struct 接收到它。
-			// NewGeminiClientWithOptions 内部调用 NewClient，它不直接暴露 SetServiceAccountJSON。
-			// 所以我们需要一种方式传递它，或者在创建后强制转换并设置。
-			// 现在的 mcp.Client 有 SetServiceAccountJSON 方法。
-		}
+
 		if config.ThinkingLevel != "" {
 			opts = append(opts, mcp.WithThinkingLevel(config.ThinkingLevel))
 		}
