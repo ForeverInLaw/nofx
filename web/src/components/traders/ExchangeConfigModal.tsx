@@ -324,7 +324,7 @@ export function ExchangeConfigModal({
           <h3 className="text-xl font-bold" style={{ color: '#EAECEF' }}>
             {editingExchangeId
               ? t('editExchange', language)
-              : t('addExchange', language)}
+              : t('addExchange', language)} (DEBUG)
           </h3>
           <div className="flex items-center gap-2">
             {selectedExchange?.id === 'binance' && (
@@ -833,6 +833,12 @@ export function ExchangeConfigModal({
                           </div>
                         </div>
                       </div>
+                    </div>
+
+                    {/* DEBUG TOGGLE 2 */}
+                    <div className="mb-4" style={{ border: '2px solid red', padding: '5px' }}>
+                       <div style={{color: 'red', fontSize: '12px', marginBottom: '5px'}}>DEBUG: SECOND TOGGLE</div>
+                       {renderTestnetToggle()}
                     </div>
 
                     {/* Agent Private Key 字段 */}
