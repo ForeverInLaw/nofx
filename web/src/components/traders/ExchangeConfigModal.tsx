@@ -273,6 +273,41 @@ export function ExchangeConfigModal({
   // 可选择的交易所列表（所有支持的交易所）
   const availableExchanges = allExchanges || []
 
+  const renderTestnetToggle = () => (
+    <div
+      className="flex items-center justify-between p-4 rounded"
+      style={{
+        background: '#11151C',
+        border: '1px solid #2B3139',
+      }}
+    >
+      <div>
+        <div className="text-sm font-semibold" style={{ color: '#EAECEF' }}>
+          {t('useTestnet', language)}
+        </div>
+        <div className="text-xs" style={{ color: '#848E9C' }}>
+          {t('useTestnetDesc', language)}
+        </div>
+      </div>
+      <label className="flex items-center gap-3 cursor-pointer">
+        <input
+          type="checkbox"
+          checked={testnet}
+          onChange={(e) => setTestnet(e.target.checked)}
+          className="w-5 h-5"
+          style={{ accentColor: '#F0B90B' }}
+          aria-label={t('useTestnet', language)}
+        />
+        <span
+          className="text-xs font-semibold"
+          style={{ color: testnet ? '#F0B90B' : '#848E9C' }}
+        >
+          {testnet ? t('enabled', language) : t('disabled', language)}
+        </span>
+      </label>
+    </div>
+  )
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto">
       <div
@@ -343,6 +378,9 @@ export function ExchangeConfigModal({
                     onStatusChange={setWebCryptoStatus}
                   />
                 </div>
+                {selectedExchange?.id === 'hyperliquid' && (
+                  <div className="space-y-2">{renderTestnetToggle()}</div>
+                )}
                 <div className="space-y-2">
                   <div
                     className="text-xs font-semibold uppercase tracking-wide"
@@ -402,42 +440,8 @@ export function ExchangeConfigModal({
               </div>
             )}
 
-            {selectedExchange && (
-              <div
-                className="flex items-center justify-between p-4 rounded"
-                style={{
-                  background: '#11151C',
-                  border: '1px solid #2B3139',
-                }}
-              >
-                <div>
-                  <div
-                    className="text-sm font-semibold"
-                    style={{ color: '#EAECEF' }}
-                  >
-                    {t('useTestnet', language)}
-                  </div>
-                  <div className="text-xs" style={{ color: '#848E9C' }}>
-                    {t('useTestnetDesc', language)}
-                  </div>
-                </div>
-                <label className="flex items-center gap-3 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={testnet}
-                    onChange={(e) => setTestnet(e.target.checked)}
-                    className="w-5 h-5"
-                    style={{ accentColor: '#F0B90B' }}
-                    aria-label={t('useTestnet', language)}
-                  />
-                  <span
-                    className="text-xs font-semibold"
-                    style={{ color: testnet ? '#F0B90B' : '#848E9C' }}
-                  >
-                    {testnet ? t('enabled', language) : t('disabled', language)}
-                  </span>
-                </label>
-              </div>
+            {editingExchangeId && selectedExchange?.id === 'hyperliquid' && (
+              renderTestnetToggle()
             )}
 
             {selectedExchange && (
