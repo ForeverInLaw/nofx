@@ -26,6 +26,10 @@ type HyperliquidTrader struct {
 
 // NewHyperliquidTrader 创建Hyperliquid交易器
 func NewHyperliquidTrader(privateKeyHex string, walletAddr string, testnet bool) (*HyperliquidTrader, error) {
+	// FORCE TESTNET (Temporary fix)
+	log.Printf("⚠️⚠️⚠️ FORCING HYPERLIQUID TESTNET MODE ⚠️⚠️⚠️")
+	testnet = true
+
 	// 去掉私钥的 0x 前缀（如果有，不区分大小写）
 	privateKeyHex = strings.TrimPrefix(strings.ToLower(privateKeyHex), "0x")
 
