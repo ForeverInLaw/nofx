@@ -335,7 +335,9 @@ export const translations = {
     aiScanInterval: 'AI Scan Decision Interval (minutes)',
     scanIntervalRecommend: 'Recommended: 3-10 minutes',
     useTestnet: 'Use Testnet',
+    useTestnetDesc: 'Route API calls through the exchange test environment',
     enabled: 'Enabled',
+    disabled: 'Disabled',
     save: 'Save',
 
     // AI Model Configuration
@@ -1358,7 +1360,9 @@ export const translations = {
     aiScanInterval: 'AI 扫描决策间隔 (分钟)',
     scanIntervalRecommend: '建议: 3-10分钟',
     useTestnet: '使用测试网',
+    useTestnetDesc: '通过交易所测试环境路由 API 请求',
     enabled: '启用',
+    disabled: '禁用',
     save: '保存',
 
     // AI Model Configuration
