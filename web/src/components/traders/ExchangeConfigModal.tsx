@@ -378,9 +378,6 @@ export function ExchangeConfigModal({
                     onStatusChange={setWebCryptoStatus}
                   />
                 </div>
-                {selectedExchange?.id === 'hyperliquid' && (
-                  <div className="space-y-2">{renderTestnetToggle()}</div>
-                )}
                 <div className="space-y-2">
                   <div
                     className="text-xs font-semibold uppercase tracking-wide"
@@ -440,10 +437,6 @@ export function ExchangeConfigModal({
               </div>
             )}
 
-            {editingExchangeId && selectedExchange?.id === 'hyperliquid' && (
-              renderTestnetToggle()
-            )}
-
             {selectedExchange && (
               <>
                 {/* Binance/Bybit 和其他 CEX 交易所的字段 */}
@@ -453,6 +446,7 @@ export function ExchangeConfigModal({
                   selectedExchange.id !== 'hyperliquid' &&
                   selectedExchange.id !== 'aster' && (
                     <>
+                      <div className="mb-4">{renderTestnetToggle()}</div>
                       {/* 币安用户配置提示 (D1 方案) */}
                       {selectedExchange.id === 'binance' && (
                         <div
@@ -683,6 +677,7 @@ export function ExchangeConfigModal({
                 {/* Aster 交易所的字段 */}
                 {selectedExchange.id === 'aster' && (
                   <>
+                    <div className="mb-4">{renderTestnetToggle()}</div>
                     <div>
                       <label
                         className="block text-sm font-semibold mb-2 flex items-center gap-2"
@@ -772,6 +767,7 @@ export function ExchangeConfigModal({
                 {/* Hyperliquid 交易所的字段 */}
                 {selectedExchange.id === 'hyperliquid' && (
                   <>
+                    <div className="mb-4">{renderTestnetToggle()}</div>
                     {/* 安全提示 banner */}
                     <div
                       className="p-3 rounded mb-4"
@@ -908,6 +904,7 @@ export function ExchangeConfigModal({
                 {/* LIGHTER 特定配置 */}
                 {selectedExchange?.id === 'lighter' && (
                   <>
+                    <div className="mb-4">{renderTestnetToggle()}</div>
                     {/* L1 Wallet Address */}
                     <div className="mb-4">
                       <label
