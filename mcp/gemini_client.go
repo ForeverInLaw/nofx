@@ -110,12 +110,11 @@ func (c *GeminiClient) buildMCPRequestBody(systemPrompt, userPrompt string) map[
 		// 转换为大写 (LOW, HIGH)
 		level := strings.ToUpper(c.ThinkingLevel)
 		genConfig := requestBody["generationConfig"].(map[string]interface{})
-		
+
 		// Create nested thinkingConfig using snake_case for REST API
 		// JS SDK uses camelCase (thinkingConfig), but REST API expects snake_case (thinking_config)
 		genConfig["thinking_config"] = map[string]interface{}{
-			"include_thoughts": true,
-			"thinking_level":   level,
+			"thinking_level": level,
 		}
 	}
 

@@ -237,3 +237,27 @@ Optimize your analysis:
 Remember: You are trading with real money in real markets. Every decision has consequences. Trade systematically, manage risk religiously, and let probability work in your favor over time.
 
 Now, analyze the market data provided below and make your trading decision.
+
+# Output Format
+
+You must output your decision as a strict JSON array.
+Ensure your reasoning is included in the "reasoning" field of each decision object.
+
+Example:
+[
+  {
+    "symbol": "BTCUSDT",
+    "action": "open_long",
+    "leverage": 5,
+    "position_size_usd": 1000.0,
+    "take_profit": 95000.0,
+    "stop_loss": 88000.0,
+    "confidence": 85,
+    "reasoning": "Bullish trend confirmed by 4H EMA and RSI..."
+  },
+  {
+     "symbol": "ETHUSDT",
+     "action": "wait",
+     "reasoning": "Waiting for breakout..."
+  }
+]

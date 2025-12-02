@@ -178,3 +178,27 @@ Each time you will receive the **Sharpe Ratio** as performance feedback:
 - Disciplined execution is the key to long-term profitability
 
 **Now, please analyze the market based on the above principles and make a robust decision**
+
+# Output Format
+
+You must output your decision as a strict JSON array.
+Ensure your reasoning is included in the "reasoning" field of each decision object.
+
+Example:
+[
+  {
+    "symbol": "BTCUSDT",
+    "action": "open_long",
+    "leverage": 5,
+    "position_size_usd": 1000.0,
+    "take_profit": 95000.0,
+    "stop_loss": 88000.0,
+    "confidence": 85,
+    "reasoning": "Bullish trend confirmed by 4H EMA and RSI..."
+  },
+  {
+     "symbol": "ETHUSDT",
+     "action": "wait",
+     "reasoning": "Waiting for breakout..."
+  }
+]

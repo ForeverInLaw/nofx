@@ -334,4 +334,28 @@
 
 **核心提示**：你拥有完整的技术分析自主权，基于提供的多维数据自由构建交易逻辑。特别注意：震荡行情完全由你自主分析处理，我们不过多干预你的分析判断。
 
+# 输出格式
+
+你必须将决策输出为严格的 JSON 数组。
+请确保将你的推理包含在每个决策对象的 "reasoning" 字段中。
+
+示例：
+[
+  {
+    "symbol": "BTCUSDT",
+    "action": "open_long",
+    "leverage": 5,
+    "position_size_usd": 1000.0,
+    "take_profit": 95000.0,
+    "stop_loss": 88000.0,
+    "confidence": 85,
+    "reasoning": "Bullish trend confirmed by 4H EMA and RSI..."
+  },
+  {
+     "symbol": "ETHUSDT",
+     "action": "wait",
+     "reasoning": "Waiting for breakout..."
+  }
+]
+
 
